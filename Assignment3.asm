@@ -1,91 +1,109 @@
 ;--------------------------------------------------------------------
 ;- 
-;- Assignment 4
+;- Assignment 3
 ;- Author: Jordan Roberts
-;- Due Date: 10/07/2019
+;- Due Date: 09/30/2019
 ;- Program Description:
-;-      This program takes values 100 to 10,000
-;-      and doubles them, stores them in a stack
-;-      or array, retreives them from the chosen
-;-      data structure, and prints them using the
-;-      hex conversion code provided by Dr. James.
-;-      
-;-      - I chose the stack to hold and retreive the data,
-;-          I found it very easy to keep track of each value,
-;-          the only trick was the doubled value would be stored
-;-          first, this helps with the ease of printing so the values 
-;-          would not be printed backwards upon popping (retreival);
-;-          e.g.
-;-              the first value 100 doubled is 200,
-;-              if I push the original value first it
-;-              will print out: 200 doubled is 100.. which
-;-              is obviously incorrect.    
+;-      Produce the first 20 terms
+;-      of the Fibonacci Sequence,
+;-      delimit with commas, no comma
+;-      will be placed after the last
+;-      term, display terms as hex values: code provided
+;-      by Professor James.
 ;-
-;--------------------------------------------------------------------            
-            
-            .MODEL  small
-            .STACK  100h
-            .DATA
-  hextable      DB      '0123456789ABCDEF'  ;An array of all Hex values 
-  string        db      ' doubled is $'     ;placed in between printed values
-  newline       db      0Dh,0Ah,'$'         ;carriage return/linefeed
-
-            .CODE
+;- ANSWER THE FOLLOWING QUESTIONS
+;-  1.) Is there a limit to the number of terms that you
+;-      can calculate?
+;-          It depends; the values in the registers will
+;-          be calculated, but the computation will not
+;-          be accurate when the program exceeds values
+;-          greater than 65535 (unsigned), or 2^16/2-1.
+;-          So, regarding precision, yes there is a limit.
+;-
+;-  2.) Explain why (or why not) there is a limit.
+;-          The limit resides with the hardware, and machine being used.
+;-          The machine will not be able to handle integer overflow if the
+;-          carry and add exceed the total size of the register or word length
+;-
+;-  3.) If there is a limit, how would you deal with the limit?
+;-          You could generate a message indicating the system is
+;-          not capable of generating that specific term, or explain
+;-          to the user there has been an integer overflow. Simply put,
+;-          if the program is taking user input, the user could be alerted
+;-          that the program cannot calculate the user-specified term to 
+;-          compute and display, then the program could loop until the value
+;-          fits the register length.    
+;-
+;--------------------------------------------------------------------
+        .MODEL  small
+        .STACK  100h
+        .DATA
+  hextable    DB      '0123456789ABCDEF'  ;An array of all Hex values 
+  comma       db      ',$'                ;Delimiter for printed terms
+        .CODE
   start:
-            mov     ax,@DATA
-            mov     ds,ax
-    
-             
-            mov     ax,100d         ; we will be using ax, bx to double
-                                    ;the values and keep track of original
-                                    ; values
-            mov     bx,0d           ; initialize each register to zero
-            mov     cx,100          ;set loop counter 100
+        mov     ax,@DATA
+        mov     ds,ax
+
+         
+        mov     ax,0d           ; we will be using ax, bx, and dx for fib computation
+        mov     bx,0d           ; initialize each register to zero
+        mov     dx,0d           ;
+        mov     cx,20
+        call    display_hex     ; prints the first term of the fib sequence "0"
+                                ; but does not decrement because it is the zeroth term
+                                ; we still need to calculate terms 1 through 20  
         
-  doubled:
-            mov     bx,ax           ;store doubled num first
-            
-            sal     ax,1            ;shift bits left 1 move to effectively double
-            push    ax              ;push the doubled value on stack first
-            mov     ax,bx           ;restore orginal value to ax
-            push    ax              ;push original value to stack
-            add     ax,100          ;increment to next one hundred's place
-            dec     cx              ;decrement loop counter
-            cmp     cx,0            ;check cx value
-            ja      doubled         ;if cx loop ran less than 100 times..
-            jb      restoreCx       ;if cx loop ran 100 times..
+  repeat:
+        cmp     ax,0
+        jz      add1
+         
         
-  restoreCx:
-                                    ;drop control here after loops..
-                                    ;restore cx value to 100
-            mov     cx,100      
-            
-  print:                             ;block of code to pop values from stack,
-                                    ;call procedure to convert values to hex
-                                    ;equivalent, print string " doubled is " 
-                                    ;in between procedure calls.               
-            pop     ax         
-            call    display_hex 
-            
-            lea     dx,string
-            mov     ah,09h
-            int     21h
-            
-            pop     ax
-            call    display_hex 
-            
-            lea     dx,newline      ;carriage return/line feed
-            mov     ah,09h
-            int     21h
-            
-            dec     cx              
-            cmp     cx,0            ;check cx value
-            ja      print           ;if cx loop ran less than 100 times..
-            je      exit            ;if cx loop ran 100 times.. we're done! 
-                                    ;shut the program down.
+        call    display_hex     ;Call procedure to display hex 
+        
+        mov     dx,bx           ; This block of code is the essential
+        mov     bx,ax           ; component to calculating the fib terms,
+        add     ax,dx           ; it takes 3 registers to keep track of 
+                                ; numbers while they increment: ax, bx,
+                                ; and dx. Since the fib terms generate
+                                ; from 0 to 1 to 1, I decided to skip this 
+                                ; calculation until ax has the value of 2
+                                ; in it, this happens in the add1 and moveOn
+                                ; loops where the contents of ax are evaluated,
+                                ; once ax increments to 2, it fails the comparison
+                                ; "if ax = 1... loop add1", then inserts the value
+                                ; 1 into bx and dx, leaving them ready to start the
+                                ; calculations for the fib terms.                               
+                                
+                                
+                                
+        dec     cx
+        jnz     repeat          ; if we're not there yet, repeat more terms
+        jz      exit            ; if cx decremented to zero with 20 terms, shut program down
+  add1: 
+                                ; add1 is used to print the 2nd and 3rd terms
+        inc     ax              ; of the fib sequence, before the register swapping
+        inc     bx              ; of the repeat loop starts.
+        cmp     bx,2            ; bx value will change after ax condition is false, bx
+                                ; is just used to keep track of iterations so ax = 1
+                                ; will print twice.
+        jz      moveOn          ; jump to moveOn when bx = 2, or when add1 has ran twice
+        call    display_hex     ; print 1
+        dec     cx
+        call    display_hex     ; print 1 again
+        dec     cx
+        cmp     ax,1            ; cmp used to send control to beginning of add1 to reevaluate
+        jz      add1
+  moveOn:                       ; if we reach moveOn, add1 will not run anymore, 
+                                ; ax = 1 has printed twice, we are now ready to calculate
+                                ; the last terms.
+        mov     bx,1            
+        mov     dx,1
+        jmp     repeat          ; jump to repeat to calculate terms
+                    
   exit:
-            mov     ax,4C00h
-            int     21h
+        mov     ax,4C00h
+        int     21h
 
   ;--------------------------------------
   ; display_hex - converts a decimal number to hex
@@ -142,7 +160,16 @@
              ;---
              ;--- Reload original register values prior to this proc call
              ;--- 
-             pop        cx                                
+             pop        cx            ; if cx = 1, this means we've printed
+             cmp        cx,1          ; the last fib term and cx will be   
+             jnz        callComma     ; decremented after control is returned 
+             jz         allDone       ; to the main program, i.e. DON'T PRINT 
+                                      ; THE LAST COMMA.
+  callComma:
+             lea    dx,comma          ; Will print if cx > 1
+             mov    ah,09h
+             int    21h
+  allDone:                     
              pop        dx
              
              pop        bx
@@ -151,8 +178,9 @@
              
 
              ret                        ;Return control to calling program
+  print_comma:
              
 display_hex  ENDP 
   
       
-             END        start
+             END        start   
