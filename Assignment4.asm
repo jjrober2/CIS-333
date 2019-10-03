@@ -1,9 +1,14 @@
-        .MODEL  small
-        .STACK  100h
-        .DATA
-  hextable    DB      '0123456789ABCDEF'  ;An array of all Hex values 
-  comma       db      ',$'                ;Delimiter for printed terms
-  string      db      ' doubled is $'
+            .MODEL  small
+            .STACK  100h
+            .DATA
+  hextable      DB      '0123456789ABCDEF'  ;An array of all Hex values 
+  comma         db      ',$'                ;Delimiter for printed terms
+  string        db      ' doubled is $'
+  newline       db      0Dh,0Ah,'$'
+  arrayNums     dw      20 DUP (?)
+  firstNum      dw      ?
+  doubledNum    dw      ?
+
         .CODE
   start:
         mov     ax,@DATA
@@ -12,10 +17,46 @@
          
         mov     ax,100d           ; we will be using ax, bx, and dx for 
         mov     bx,0d           ; initialize each register to zero
-        mov     dx,0d           ;
-        mov     cx,20
+        mov     di,00           ;
+        mov     cx,100
         
+  doubled:
+        mov     bx,ax           ;store doubled num first
         
+        sal     ax,1 
+        push    ax
+        mov     ax,bx
+        push    ax
+        add     ax,100
+        dec     cx
+        cmp     cx,0
+        ja      doubled
+        jb      decDI
+        
+  decDI:
+        dec     di
+        mov     cx,40      
+        
+  print:
+               
+        pop     ax         
+        call    display_hex 
+        
+        lea     dx,string
+        mov     ah,09h
+        int     21h
+        
+        pop     ax
+        call    display_hex 
+        
+        lea     dx,newline
+        mov     ah,09h
+        int     21h
+        
+        dec     cx
+        cmp     cx,0
+        ja      print
+        je      exit             
                     
   exit:
         mov     ax,4C00h
@@ -77,15 +118,15 @@
              ;--- Reload original register values prior to this proc call
              ;--- 
              pop        cx            ; if cx = 1, this means we've printed
-             cmp        cx,1          ; the last fib term and cx will be   
-             jnz        callComma     ; decremented after control is returned 
-             jz         allDone       ; to the main program, i.e. DON'T PRINT 
+            ; cmp        cx,1          ; the last fib term and cx will be   
+             ;jnz        callComma     ; decremented after control is returned 
+             ;jz         allDone       ; to the main program, i.e. DON'T PRINT 
                                       ; THE LAST COMMA.
-  callComma:
-             lea    dx,comma          ; Will print if cx > 1
-             mov    ah,09h
-             int    21h
-  allDone:                     
+  ;callComma:
+   ;          lea    dx,comma          ; Will print if cx > 1
+    ;         mov    ah,09h
+     ;        int    21h
+  ;allDone:                     
              pop        dx
              
              pop        bx
@@ -94,7 +135,7 @@
              
 
              ret                        ;Return control to calling program
-  print_comma:
+  ;print_comma:
              
 display_hex  ENDP 
   
