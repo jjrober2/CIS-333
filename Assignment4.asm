@@ -1,66 +1,91 @@
+;--------------------------------------------------------------------
+;- 
+;- Assignment 4
+;- Author: Jordan Roberts
+;- Due Date: 10/07/2019
+;- Program Description:
+;-      This program takes values 100 to 10,000
+;-      and doubles them, stores them in a stack
+;-      or array, retreives them from the chosen
+;-      data structure, and prints them using the
+;-      hex conversion code provided by Dr. James.
+;-      
+;-      - I chose the stack to hold and retreive the data,
+;-          I found it very easy to keep track of each value,
+;-          the only trick was the doubled value would be stored
+;-          first, this helps with the ease of printing so the values 
+;-          would not be printed backwards upon popping (retreival);
+;-          e.g.
+;-              the first value 100 doubled is 200,
+;-              if I push the original value first it
+;-              will print out: 200 doubled is 100.. which
+;-              is obviously incorrect.    
+;-
+;--------------------------------------------------------------------            
+            
             .MODEL  small
             .STACK  100h
             .DATA
   hextable      DB      '0123456789ABCDEF'  ;An array of all Hex values 
-  comma         db      ',$'                ;Delimiter for printed terms
-  string        db      ' doubled is $'
-  newline       db      0Dh,0Ah,'$'
-  arrayNums     dw      20 DUP (?)
-  firstNum      dw      ?
-  doubledNum    dw      ?
+  string        db      ' doubled is $'     ;placed in between printed values
+  newline       db      0Dh,0Ah,'$'         ;carriage return/linefeed
 
-        .CODE
+            .CODE
   start:
-        mov     ax,@DATA
-        mov     ds,ax
-
-         
-        mov     ax,100d           ; we will be using ax, bx, and dx for 
-        mov     bx,0d           ; initialize each register to zero
-        mov     di,00           ;
-        mov     cx,100
+            mov     ax,@DATA
+            mov     ds,ax
+    
+             
+            mov     ax,100d         ; we will be using ax, bx to double
+                                    ;the values and keep track of original
+                                    ; values
+            mov     bx,0d           ; initialize each register to zero
+            mov     cx,100          ;set loop counter 100
         
   doubled:
-        mov     bx,ax           ;store doubled num first
+            mov     bx,ax           ;store doubled num first
+            
+            sal     ax,1            ;shift bits left 1 move to effectively double
+            push    ax              ;push the doubled value on stack first
+            mov     ax,bx           ;restore orginal value to ax
+            push    ax              ;push original value to stack
+            add     ax,100          ;increment to next one hundred's place
+            dec     cx              ;decrement loop counter
+            cmp     cx,0            ;check cx value
+            ja      doubled         ;if cx loop ran less than 100 times..
+            jb      restoreCx       ;if cx loop ran 100 times..
         
-        sal     ax,1 
-        push    ax
-        mov     ax,bx
-        push    ax
-        add     ax,100
-        dec     cx
-        cmp     cx,0
-        ja      doubled
-        jb      decDI
-        
-  decDI:
-        dec     di
-        mov     cx,40      
-        
-  print:
-               
-        pop     ax         
-        call    display_hex 
-        
-        lea     dx,string
-        mov     ah,09h
-        int     21h
-        
-        pop     ax
-        call    display_hex 
-        
-        lea     dx,newline
-        mov     ah,09h
-        int     21h
-        
-        dec     cx
-        cmp     cx,0
-        ja      print
-        je      exit             
-                    
+  restoreCx:
+                                    ;drop control here after loops..
+                                    ;restore cx value to 100
+            mov     cx,100      
+            
+  print:                             ;block of code to pop values from stack,
+                                    ;call procedure to convert values to hex
+                                    ;equivalent, print string " doubled is " 
+                                    ;in between procedure calls.               
+            pop     ax         
+            call    display_hex 
+            
+            lea     dx,string
+            mov     ah,09h
+            int     21h
+            
+            pop     ax
+            call    display_hex 
+            
+            lea     dx,newline      ;carriage return/line feed
+            mov     ah,09h
+            int     21h
+            
+            dec     cx              
+            cmp     cx,0            ;check cx value
+            ja      print           ;if cx loop ran less than 100 times..
+            je      exit            ;if cx loop ran 100 times.. we're done! 
+                                    ;shut the program down.
   exit:
-        mov     ax,4C00h
-        int     21h
+            mov     ax,4C00h
+            int     21h
 
   ;--------------------------------------
   ; display_hex - converts a decimal number to hex
@@ -117,16 +142,7 @@
              ;---
              ;--- Reload original register values prior to this proc call
              ;--- 
-             pop        cx            ; if cx = 1, this means we've printed
-            ; cmp        cx,1          ; the last fib term and cx will be   
-             ;jnz        callComma     ; decremented after control is returned 
-             ;jz         allDone       ; to the main program, i.e. DON'T PRINT 
-                                      ; THE LAST COMMA.
-  ;callComma:
-   ;          lea    dx,comma          ; Will print if cx > 1
-    ;         mov    ah,09h
-     ;        int    21h
-  ;allDone:                     
+             pop        cx                                
              pop        dx
              
              pop        bx
@@ -135,7 +151,6 @@
              
 
              ret                        ;Return control to calling program
-  ;print_comma:
              
 display_hex  ENDP 
   
