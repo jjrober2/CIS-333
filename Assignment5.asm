@@ -1,7 +1,8 @@
 ;---------------------------------------------------------------
+;- Assignment5
 ;- Author: Jordan Roberts
-;- 
-;-
+;- Due Date: 10/14/2019
+;- Program Description
 ;-
 ;-
 ;-
@@ -15,7 +16,9 @@
   buffer        DW      100 DUP(?)
   char          DB      ' '
   y             DB      'y'
+  y_caps        DB      'Y'
   n             DB      'n'     
+  n_caps        DB      'N'     
   Testy         DB      'IT WORKS!$'
   handle1       DW      0         
   CARSTRUCT    LABEL   BYTE    ;start of the carstruct list
@@ -34,7 +37,8 @@
                 DB      0Dh,0Ah,'$'
   
   UserInput     DB      1 DUP(' '),'$'
-                              
+  counter       DW      0                            
+  proc_msg      DB      '*** Awesome Auto Lot Inventory file has been processed ***$'
   
                 .CODE
   start:
@@ -48,6 +52,7 @@
                                         ;- needs to enter another vehicle
                 call    clrscreen                        
                 mov     cx,5            ;- how many times user will input
+                add     counter,cx
                 mov     bh,0
                 lea     dx,promptMan    ;- display form
                 mov     ah,09h
@@ -66,6 +71,7 @@
                 push    bx              ;- save for set cursor routine
                 call    write_to_file
                 pop     bx
+                
                 cmp     cx,0
                 jnz     repeat          ;- repeat if all input not accounted for        
    
@@ -73,16 +79,30 @@
   postProcessing:
                 call    addInventory
                 cmp     bl,y
-                je      printy
-                jmp     exit
+                je      resume
+                cmp     bl,y_caps
+                je      resume
+                cmp     bl,n
+                je      close
+                cmp     bl,n_caps
+                je      close
                 
                 
-  printy:
-                lea     dx,testy
-                mov     ah,09h
-                int     21h              
-                jmp     resume
+  close:
+                call    close_file
+                call    clrscreen
+                call    file_processing
+                call    close_file
+                
    exit:        
+                
+                mov     ah,02h          ;- set cursor
+                mov     bh,00
+                mov     dx,0b0ch                
+                int     10h 
+                lea     dx,proc_msg
+                mov     ah,09h
+                int     21h
                 
                 mov     ax,4C00h
                 int     21h               
@@ -138,6 +158,7 @@ cre_openfile    PROC    near
 cre_openfile    endp   
 
 write_to_file   PROC    near
+                
                 push    cx
                 mov     bh,00h           ;replace return char
                 mov     bl,ActLen        ;with the a null since we
@@ -189,4 +210,57 @@ clearInput      PROC    near             ;-This proc will clear the data
                 jnz     remove
                 
                 ret
-clearInput      endp    
+clearInput      endp 
+
+close_file      PROC    near
+ 
+                mov     ah,3Eh          ;close file
+                mov     bx,handle1      ;file handle
+                int     21h    
+    
+                ret
+close_file      endp
+
+file_processing PROC    near
+    
+                mov     ah,3Dh          ;open file
+                mov     al,000b         ;read access
+                lea     dx,file_name    ;address    
+                int     21h
+                mov     handle1,ax      ;save file handle
+                
+                 ;--- Get length of file
+                mov     ah,42h          ;move pointer
+                
+                mov     al,02h          ;offset from end of file
+                mov     bx,handle1      ;file handle
+                xor     cx,cx           ;set cx = 0
+                xor     dx,dx           ;set dx = 0
+                int     21h             ;file length in DS:AX
+                push    ax              ;AX = file length
+                                        ;DX = 0 in this example    
+                mov     counter,ax                        
+                 ;--- Reset file pointer to beginning of file
+                mov     ah,42h          ;move pointer
+                mov     al,00h          ;set at start of file
+                mov     bx,handle1      ;file handle
+                xor     cx,cx           ;CX = 0
+                xor     dx,dx           ;DX = 0
+                int     21h
+                
+                 ;--- Read file
+                mov     ah,3Fh          ;read file
+                mov     bx,handle1      ;file handle
+                pop     cx              ;read byes
+                lea     dx,file_buf     ;address
+                int     21h    
+                
+                 ;--- Display data in file buffer
+                mov     ah,40h          ;write to device
+                mov     bx,1            ;device = screen
+                mov     cx,10*20         ;write n bytes
+                lea     dx,file_buf     ;address
+                int     21h                                     
+    
+                ret
+file_processing endp    
