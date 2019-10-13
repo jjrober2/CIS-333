@@ -19,7 +19,6 @@
   y_caps        DB      'Y'
   n             DB      'n'     
   n_caps        DB      'N'     
-  Testy         DB      'IT WORKS!$'
   handle1       DW      0         
   CARSTRUCT    LABEL   BYTE    ;start of the carstruct list
   MaxLen        DB      10      ;max length all car info can be
@@ -39,7 +38,7 @@
   UserInput     DB      1 DUP(' '),'$'
   counter       DW      0                            
   proc_msg      DB      '*** Awesome Auto Lot Inventory file has been processed ***$'
-  
+  newline       DB      0Dh,0Ah
                 .CODE
   start:
                 mov     ax,@DATA
@@ -98,8 +97,8 @@
                 
                 mov     ah,02h          ;- set cursor
                 mov     bh,00
-                mov     dx,0b0ch                
-                int     10h 
+                mov     dx,170Ch        ;position proc_msg        
+                int     10h             ;on bottom of screen
                 lea     dx,proc_msg
                 mov     ah,09h
                 int     21h
@@ -113,7 +112,7 @@
 ;--------------------------------------------------------------                
                 
 setcurs      PROC  near     
-                
+                inc     counter
                 mov     dh,bh
                 mov     dl,0fh
                 push    bx
@@ -201,6 +200,7 @@ clearInput      PROC    near             ;-This proc will clear the data
                                          ;-written to the file.
                 mov     bh,00h           ;replace return char
                 mov     bl,ActLen        ;with the a null since we
+                
         remove:               
                 
                 mov     Manufac[bx],00h ;remove the character at 
@@ -238,8 +238,7 @@ file_processing PROC    near
                 xor     dx,dx           ;set dx = 0
                 int     21h             ;file length in DS:AX
                 push    ax              ;AX = file length
-                                        ;DX = 0 in this example    
-                mov     counter,ax                        
+                                        ;DX = 0 in this example                            
                  ;--- Reset file pointer to beginning of file
                 mov     ah,42h          ;move pointer
                 mov     al,00h          ;set at start of file
@@ -258,7 +257,18 @@ file_processing PROC    near
                  ;--- Display data in file buffer
                 mov     ah,40h          ;write to device
                 mov     bx,1            ;device = screen
-                mov     cx,10*20         ;write n bytes
+                mov     cx,10*20        ;write n bytes
+                                        ;-(size of file buffer)
+                                        
+                mov     file_buf[48],0Dh   ;- This section inserts
+                mov     file_buf[49],0Ah   ;- a carriage return
+                                           ;- and line feed at the
+                mov     file_buf[98],0Dh   ;- end of the required
+                mov     file_buf[99],0Ah   ;- input, after 'doors'.
+                                           ;- this makes the display
+                mov     file_buf[147],0Dh  ;- of data more readable.
+                mov     file_buf[148],0Ah  ;-
+                                      
                 lea     dx,file_buf     ;address
                 int     21h                                     
     
