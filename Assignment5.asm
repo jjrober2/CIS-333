@@ -11,8 +11,8 @@
                 .STACK  100h
                 .DATA
   file_buf      DB      20*10 DUP (?)               ;buffer zone
-  file_name     DB      'C:\TEST\AUTO.TXT',00h    ;ASCIIZ string
-  dir_name      DB      'C:\TEST',00h             ;ASCIIZ string                 
+  file_name     DB      'C:\asm\test.TXT',00h    ;ASCIIZ string
+  dir_name      DB      'C:\asm',00h             ;ASCIIZ string                 
   buffer        DW      100 DUP(?)
   char          DB      ' '
   y             DB      'y'
@@ -38,7 +38,8 @@
   UserInput     DB      1 DUP(' '),'$'
   counter       DW      0                            
   proc_msg      DB      '*** Awesome Auto Lot Inventory file has been processed ***$'
-  newline       DB      0Dh,0Ah
+  newline       DB      0Dh,0Ah 
+  file_msg      DB      'Struct information written to file C:\asm\test.TXT$'
                 .CODE
   start:
                 mov     ax,@DATA
@@ -76,22 +77,25 @@
    
    
   postProcessing:
-                call    addInventory
-                cmp     bl,y
+                call    addInventory   ;- call proc 
+                cmp     bl,y           ;- support lo-case y
                 je      resume
-                cmp     bl,y_caps
+                cmp     bl,y_caps      ;- support up-case Y
                 je      resume
-                cmp     bl,n
+                cmp     bl,n           ;- support lo-case n
                 je      close
-                cmp     bl,n_caps
+                cmp     bl,n_caps      ;- support up-case N
                 je      close
-                
+                                       ;- may put nop instruction
+                                       ;- through loop to showcase
+                                       ;- file_msg was successful
+                                       ;- before screen is cleared
                 
   close:
                 call    close_file
                 call    clrscreen
                 call    file_processing
-                call    close_file
+                call    close_file  
                 
    exit:        
                 
